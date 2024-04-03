@@ -1,0 +1,92 @@
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-instance.html
+
+Description: This template deploys three EC2 instances in my environment - for web server, database server, and bastion host.
+
+Parameters:
+  UserData:
+    Description: User data to run on the web server instance
+    Type: String
+    Default: |
+      #!/bin/bash -xe
+      yum update -y
+      yum install -y httpd
+      systemctl start httpd
+      systemctl enable httpd
+      echo "<html><body><h1>Hello from ${EnvironmentName} Web Server</h1></body></html>" > /var/www/html/index.html
+
+  EnvironmentName:
+    Description: An environment name that is prefixed to resource names
+    Type: String
+    Default: devops2
+
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t2.nano
+
+  AMI:
+    Description: AMI ID from custom image on the console
+    Type: AWS::EC2::Image::Id
+    Default: ami-082d160f4bd6aeb34
+
+  KeyName:
+    Description: EC2 Key Pair
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: instance-key
+
+  WebServerSG:
+    Description: Web Server Security Group
+    Type: AWS::EC2::SecurityGroup::Id
+    Default: !GetAtt SecurityGroupStack.Outputs.WebServerSG
+
+  DBServerSG:
+    Description: Database Server Security Group
+    Type: AWS::EC2::SecurityGroup::Id
+    Default: !GetAtt SecurityGroupStack.Outputs.DBServerSG
+
+  BastionSG:
+    Description: Bastion Host Security Group
+    Type: AWS::EC2::SecurityGroup::Id
+    Default: !GetAtt SecurityGroupStack.Outputs.BastionSG
+
+Resources:
+  WebServerInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !Ref AMI
+      KeyName: !Ref KeyName
+      SecurityGroupIds:
+        - !Ref WebServerSG
+      SubnetId: !Select [ 0, !Ref VPCStack.Outputs.PublicSubnetIds ]
+      UserData:
+        Fn::Base64: !Sub |
+         - !Ref UserData
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Web Server
+
+  DBServerInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !Ref AMI
+      SecurityGroupIds:
+        - !Ref DBServerSG
+      SubnetId: !Select [ 0, !Ref VPCStack.Outputs.PrivateSubnetIds ]
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Database Server
+
+  BastionHostInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !Ref AMI
+      KeyName: !Ref KeyName
+      SecurityGroupIds:
+        - !Ref BastionSG
+      SubnetId: !Select [ 0, !Ref VPCStack.Outputs.PublicSubnetIds ]
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Bastion Host
