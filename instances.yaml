@@ -3,17 +3,6 @@
 Description: This template deploys three EC2 instances in my environment - for web server, database server, and bastion host.
 
 Parameters:
-  UserData:
-    Description: User data to run on the web server instance
-    Type: String
-    Default: |
-      #!/bin/bash -xe
-      yum update -y
-      yum install -y httpd
-      systemctl start httpd
-      systemctl enable httpd
-      echo "<html><body><h1>Hello from ${EnvironmentName} Web Server</h1></body></html>" > /var/www/html/index.html
-
   EnvironmentName:
     Description: An environment name that is prefixed to resource names
     Type: String
@@ -24,10 +13,15 @@ Parameters:
     Type: String
     Default: t2.nano
 
-  AMI:
-    Description: AMI ID from custom image on the console
+  WebServerAMI:
+    Description: AMI ID from custom image on the console for web server
     Type: AWS::EC2::Image::Id
     Default: ami-082d160f4bd6aeb34
+
+  BastionAMI:
+    Description: AMI ID from custom image on the console for bastion host
+    Type: AWS::EC2::Image::Id
+    Default: ami-0bf0558a1b312d976
 
   KeyName:
     Description: EC2 Key Pair
@@ -54,7 +48,7 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: !Ref InstanceType
-      ImageId: !Ref AMI
+      ImageId: !Ref WebServerAMI
       KeyName: !Ref KeyName
       SecurityGroupIds:
         - !Ref WebServerSG
@@ -82,7 +76,7 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: !Ref InstanceType
-      ImageId: !Ref AMI
+      ImageId: !Ref BastionAMI
       KeyName: !Ref KeyName
       SecurityGroupIds:
         - !Ref BastionSG
