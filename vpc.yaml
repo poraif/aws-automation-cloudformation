@@ -25,15 +25,20 @@ Parameters:
     Type: String
     Default: 10.0.1.0/24
 
+  PublicSubnet3CIDR:
+    Description: Public subnet 3 CIDR
+    Type: String
+    Default: 10.0.2.0/24
+
   PrivateSubnet1CIDR:
     Description: Private subnet 1 CIDR
     Type: String
-    Default: 10.0.2.0/24
+    Default: 10.0.3.0/24
   
   PrivateSubnet2CIDR:
     Description: Private subnet 2 CIDR
     Type: String
-    Default: 10.0.3.0/24
+    Default: 10.0.4.0/24
 
 Resources:
   VPC:
@@ -80,6 +85,17 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} Public Subnet (AZ2)
+
+  PublicSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: us-east-1c
+      CidrBlock: !Ref PublicSubnet3CIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Public Subnet (AZ3)
 
   PrivateSubnet1:
     Type: AWS::EC2::Subnet

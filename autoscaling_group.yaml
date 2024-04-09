@@ -1,0 +1,115 @@
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-launchtemplate.html 
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-autoscaling-autoscalinggroup.html 
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-autoscaling-scalingpolicy.html
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-autoscaling-scheduledaction.html
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-cloudwatch-alarm.html
+
+
+Description: This template sets up the launch template, autoscaling group, scaling policies and associated alarms.
+
+Parameters:
+  EnvironmentName:
+    Description: An environment name that is prefixed to resource names
+    Type: String
+    Default: devops2
+
+  WebServerAMI:
+    Description: AMI ID from custom image on the console for web server
+    Type: AWS::EC2::Image::Id
+    Default: ami-082d160f4bd6aeb34
+
+  # WebServerInstance:
+  #   Type: AWS::EC2::Instance
+  #   Properties:
+  #     InstanceType: !Ref InstanceType
+  #     ImageId: !Ref WebServerAMI
+  #     KeyName: !Ref KeyName
+  #     SecurityGroupIds:
+  #       - !Ref WebServerSG
+  #     SubnetId: !Select [ 0, !Ref VPCStack.Outputs.PublicSubnetIds ]
+  #     UserData:
+  #       Fn::Base64: !Sub |
+  #        - !Ref UserData
+  #     Tags:
+  #       - Key: Name
+  #         Value: !Sub ${EnvironmentName} Web Server
+
+Resources:
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: InstanceRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: 'Allow'
+          Principal:
+            Service:
+            - 'ec2.amazonaws.com'
+          Action:
+          - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/myCustomerManagedPolicy'
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: '/'
+      Roles:
+      - !Ref InstanceRole
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub ${EnvironmentName} LaunchTemplate
+      LaunchTemplateData:
+        ImageId: !Ref WebServerAMI
+        InstanceType: !GetAtt InstanceStack.Outputs.InstanceType
+        KeyName: !GetAtt InstanceStack.Outputs.KeyName
+        SecurityGroupIds:
+          - !GetAtt SecurityGroupStack.Outputs.LaunchTemplateSG
+        vpcId: !GetAtt VPCStack.Outputs.VPCId
+        IamInstanceProfile:
+          Name: !Ref InstanceProfile
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash -xe
+            yum update -y
+            yum install -y httpd
+            systemctl start httpd
+            systemctl enable httpd
+            echo "<html><h1>Hello World</h1></html>" > /var/www/html/index.html
+        Monitoring:
+          Enabled: true
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: !Sub ${EnvironmentName} WebServerInstance
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: !Sub ${EnvironmentName} AutoScalingGroup
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplate
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
+      MinSize: 1
+      MaxSize: 3
+      DesiredCapacity: 2
+      VPCZoneIdentifier:
+        - !Select [ 0, !Ref VPCStack.Outputs.PublicSubnetIds ]
+        - !Select [ 1, !Ref VPCStack.Outputs.PublicSubnetIds ]
+        - !Select [ 2, !Ref VPCStack.Outputs.PublicSubnetIds ]
+      TargetGroupARNs:
+        - !Ref TargetGroup
+      HealthCheckType: ELB
+      HealthCheckGracePeriod: 300
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} WebServerInstance
+          PropagateAtLaunch: true
+        - Key: Environment
+          Value: !Ref EnvironmentName
+          PropagateAtLaunch: true
+  ScaleOutPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref AutoScalingGroup
