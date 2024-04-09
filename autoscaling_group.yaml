@@ -94,17 +94,20 @@ Resources:
       MinSize: 1
       MaxSize: 3
       DesiredCapacity: 2
+      vpcId: !GetAtt VPCStack.Outputs.VPCId
       VPCZoneIdentifier:
         - !Select [ 0, !Ref VPCStack.Outputs.PublicSubnetIds ]
         - !Select [ 1, !Ref VPCStack.Outputs.PublicSubnetIds ]
         - !Select [ 2, !Ref VPCStack.Outputs.PublicSubnetIds ]
+      metricsCollection:
+        - Granularity: 1Minute
       TargetGroupARNs:
         - !Ref TargetGroup
       HealthCheckType: ELB
       HealthCheckGracePeriod: 300
       Tags:
         - Key: Name
-          Value: !Sub ${EnvironmentName} WebServerInstance
+          Value: !Sub ${EnvironmentName} AutoScaleWebServer
           PropagateAtLaunch: true
         - Key: Environment
           Value: !Ref EnvironmentName
