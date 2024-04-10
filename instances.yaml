@@ -13,11 +13,6 @@ Parameters:
     Type: String
     Default: t2.nano
 
-  WebServerAMI:
-    Description: AMI ID from custom image on the console for web server
-    Type: AWS::EC2::Image::Id
-    Default: ami-082d160f4bd6aeb34
-
   BastionAMI:
     Description: AMI ID from custom image on the console for bastion host
     Type: AWS::EC2::Image::Id
@@ -27,11 +22,6 @@ Parameters:
     Description: EC2 Key Pair
     Type: AWS::EC2::KeyPair::KeyName
     Default: instance-key
-
-  WebServerSG:
-    Description: Web Server Security Group
-    Type: AWS::EC2::SecurityGroup::Id
-    Default: !GetAtt SecurityGroupStack.Outputs.WebServerSG
 
   DBServerSG:
     Description: Database Server Security Group
@@ -44,21 +34,21 @@ Parameters:
     Default: !GetAtt SecurityGroupStack.Outputs.BastionSG
 
 Resources:
-  WebServerInstance:
-    Type: AWS::EC2::Instance
-    Properties:
-      InstanceType: !Ref InstanceType
-      ImageId: !Ref WebServerAMI
-      KeyName: !Ref KeyName
-      SecurityGroupIds:
-        - !Ref WebServerSG
-      SubnetId: !Select [ 0, !Ref VPCStack.Outputs.PublicSubnetIds ]
-      UserData:
-        Fn::Base64: !Sub |
-         - !Ref UserData
-      Tags:
-        - Key: Name
-          Value: !Sub ${EnvironmentName} Web Server
+  # WebServerInstance:
+  #   Type: AWS::EC2::Instance
+  #   Properties:
+  #     InstanceType: !Ref InstanceType
+  #     ImageId: !Ref WebServerAMI
+  #     KeyName: !Ref KeyName
+  #     SecurityGroupIds:
+  #       - !Ref WebServerSG
+  #     SubnetId: !Select [ 0, !Ref VPCStack.Outputs.PublicSubnetIds ]
+  #     UserData:
+  #       Fn::Base64: !Sub |
+  #        - !Ref UserData
+  #     Tags:
+  #       - Key: Name
+  #         Value: !Sub ${EnvironmentName} Web Server
 
   DBServerInstance:
     Type: AWS::EC2::Instance

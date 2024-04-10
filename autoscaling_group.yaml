@@ -3,7 +3,7 @@
 # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-autoscaling-scalingpolicy.html
 # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-autoscaling-scheduledaction.html
 # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-cloudwatch-alarm.html
-
+# https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/application-insights-recommended-metrics.html
 
 Description: This template sets up the launch template, autoscaling group, scaling policies and associated alarms.
 
@@ -17,6 +17,11 @@ Parameters:
     Description: AMI ID from custom image on the console for web server
     Type: AWS::EC2::Image::Id
     Default: ami-082d160f4bd6aeb34
+  
+  EmailAddress:
+    Description: Email address to notify if there are any scaling issues
+    Type: String
+    Default: 20104299@mail.wit.ie
 
   # WebServerInstance:
   #   Type: AWS::EC2::Instance
@@ -92,14 +97,14 @@ Resources:
         LaunchTemplateId: !Ref LaunchTemplate
         Version: !GetAtt LaunchTemplate.LatestVersionNumber
       MinSize: 1
-      MaxSize: 3
+      MaxSize: 5
       DesiredCapacity: 2
       vpcId: !GetAtt VPCStack.Outputs.VPCId
       VPCZoneIdentifier:
         - !Select [ 0, !Ref VPCStack.Outputs.PublicSubnetIds ]
         - !Select [ 1, !Ref VPCStack.Outputs.PublicSubnetIds ]
         - !Select [ 2, !Ref VPCStack.Outputs.PublicSubnetIds ]
-      metricsCollection:
+      MetricsCollection:
         - Granularity: 1Minute
       TargetGroupARNs:
         - !Ref TargetGroup
@@ -116,3 +121,103 @@ Resources:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
       AutoScalingGroupName: !Ref AutoScalingGroup
+      PolicyType: StepScaling
+      AdjustmentType: ChangeInCapacity
+      MetricAggregationType: Average
+      StepAdjustments: 
+        - MetricIntervalLowerBound: '0'
+          MetricIntervalUpperBound: '10'
+          ScalingAdjustment: '1'
+        - MetricIntervalLowerBound: '10'
+          MetricIntervalUpperBound: '20'
+          ScalingAdjustment: '2'
+        - MetricIntervalLowerBound: '20'
+          ScalingAdjustment: '3'
+  ScaleInPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref AutoScalingGroup
+      PolicyType: StepScaling
+      AdjustmentType: ChangeInCapacity
+      MetricAggregationType: Average
+      StepAdjustments: 
+        - MetricIntervalLowerBound: '-10'
+          MetricIntervalUpperBound: '0'
+          ScalingAdjustment: '1'
+        - MetricIntervalLowerBound: '-20'
+          MetricIntervalUpperBound: '-10'
+          ScalingAdjustment: '2'
+        - MetricIntervalUpperBound: '-20'
+          ScalingAdjustment: '3'
+  HighCPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      EvaluationPeriods: 2
+      Statistic: Average
+      Threshold: 50
+      AlarmDescription: 'Scales instances up based on CPU utilization'
+      Period: 60
+      AlarmActions:
+      - !Ref ScaleOutPolicy
+      Namespace: AWS/EC2
+      Dimensions:
+      - Name: AutoScalingGroupName
+        Value:
+          !Ref AutoScalingGroup
+      - Name: InstanceId
+        Value:
+          !Ref WebServerInstance
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      MetricName: CPUUtilization
+  LowCPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      EvaluationPeriods: 2
+      Statistic: Average
+      Threshold: 20
+      AlarmDescription: 'Scales instances down based on CPU utilization'
+      Period: 60
+      AlarmActions:
+      - !Ref ScaleInPolicy
+      Namespace: AWS/EC2
+      Dimensions:
+      - Name: AutoScalingGroupName
+        Value:
+          !Ref AutoScalingGroup
+      - Name: InstanceId
+        Value:
+          !Ref WebServerInstance
+      ComparisonOperator: LessThanOrEqualToThreshold
+      MetricName: CPUUtilization
+  StatusCheckFailedAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      EvaluationPeriods: 2
+      Statistic: Maximum
+      Threshold: 1
+      AlarmDescription: 'Sends a notification if instances fail status check'
+      Period: 300
+      AlarmActions:
+      - !Ref SNSTopic
+      Namespace: AWS/EC2
+      Dimensions:
+      - Name: AutoScalingGroupName
+        Value:
+          !Ref AutoScalingGroup
+      - Name: InstanceId
+        Value:
+          !Ref WebServerInstance
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      MetricName: StatusCheckFailed
+  SNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !Sub ${EnvironmentName} StatusCheckFailed SNS Topic
+      TopicName: Status Check Failed SNS Topic
+  SNSSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      TopicArn: !Ref SNSTopic
+      Endpoint: !Ref EmailAddress
+  
