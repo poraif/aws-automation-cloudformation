@@ -8,7 +8,30 @@ Parameters:
   EnvironmentName:
     Description: An environment name that is prefixed to resource names
     Type: String
-    Default: devops2
+
+  VpcId:
+    Description: VPC ID
+    Type: AWS::EC2::VPC::Id
+  
+  WebServerInstance:
+    Description: Web Server Instance
+    Type: AWS::EC2::Instance::Id
+  
+  WebServerSG:
+    Description: Web Server Security Group
+    Type: AWS::EC2::SecurityGroup::Id
+  
+  PublicSubnet1Id:
+    Description: Public Subnet 1 ID
+    Type: AWS::EC2::Subnet::Id
+  
+  PublicSubnet2Id:
+    Description: Public Subnet 2 ID
+    Type: AWS::EC2::Subnet::Id
+  
+  PublicSubnet3Id:
+    Description: Public Subnet 3 ID
+    Type: AWS::EC2::Subnet::Id
 
 Resources:
   TargetGroup:
@@ -17,10 +40,10 @@ Resources:
       Name: !Sub ${EnvironmentName} TargetGroup 
       Port: 80
       Protocol: HTTP
-      VpcId: !GetAtt VPCStack.Outputs.VpcId
+      VpcId: !Ref VpcId
       TargetType: instance
       Targets:
-        - Id: !GetAtt InstanceStack.Outputs.WebServerInstance
+        - Id: !Ref WebServerInstance
       HealthCheckEnabled: True
       HealthCheckPath: /
       HealthCheckIntervalSeconds: 30
@@ -29,22 +52,21 @@ Resources:
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 5
       UnhealthyThresholdCount: 2
+
   LoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Name: !Sub ${EnvironmentName} Load Balancer
       Type: application
       Scheme: internet-facing
-      VpcId: !GetAtt VPCStack.Outputs.VpcId
+      VpcId: !Ref VpcId
       SecurityGroups:
-        - !GetAtt SecurityGroupStack.Outputs.WebServerSG
+        - !Ref WebServerSG
       SubnetMappings:
-        - SubnetId: !Select [ 0, !Ref VPCStack.Outputs.PublicSubnetIds ]
-          AllocationId: !GetAtt VPCStack.Outputs.PublicSubnetAllocationIds
-        - SubnetId: !Select [ 1, !Ref VPCStack.Outputs.PublicSubnetIds ]
-          AllocationId: !GetAtt VPCStack.Outputs.PublicSubnetAllocationIds
-        - SubnetId: !Select [ 2, !Ref VPCStack.Outputs.PublicSubnetIds ]
-          AllocationId: !GetAtt VPCStack.Outputs.PublicSubnetAllocationIds
+        - SubnetId: !Ref PublicSubnet1Id
+        - SubnetId: !Ref PublicSubnet2Id
+        - SubnetId: !Ref PublicSubnet3Id
+
   Listener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
@@ -54,3 +76,16 @@ Resources:
       LoadBalancerArn: !Ref LoadBalancer
       Port: 80
       Protocol: HTTP
+
+Outputs:
+  TargetGroup:
+    Description: Target Group ARN
+    Value: !Ref TargetGroup
+
+  LoadBalancer:
+    Description: Load Balancer ARN
+    Value: !Ref LoadBalancer
+
+  Listener:
+    Description: Listener ARN
+    Value: !Ref Listener

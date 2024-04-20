@@ -11,33 +11,51 @@ Parameters:
   EnvironmentName:
     Description: An environment name that is prefixed to resource names
     Type: String
-    Default: devops2
 
-  WebServerAMI:
+  AMI:
     Description: AMI ID from custom image on the console for web server
     Type: AWS::EC2::Image::Id
-    Default: ami-082d160f4bd6aeb34
   
   EmailAddress:
     Description: Email address to notify if there are any scaling issues
     Type: String
     Default: 20104299@mail.wit.ie
 
-  # WebServerInstance:
-  #   Type: AWS::EC2::Instance
-  #   Properties:
-  #     InstanceType: !Ref InstanceType
-  #     ImageId: !Ref WebServerAMI
-  #     KeyName: !Ref KeyName
-  #     SecurityGroupIds:
-  #       - !Ref WebServerSG
-  #     SubnetId: !Select [ 0, !Ref VPCStack.Outputs.PublicSubnetIds ]
-  #     UserData:
-  #       Fn::Base64: !Sub |
-  #        - !Ref UserData
-  #     Tags:
-  #       - Key: Name
-  #         Value: !Sub ${EnvironmentName} Web Server
+  VpcId:
+    Description: VPC ID
+    Type: AWS::EC2::VPC::Id
+  
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+  
+  KeyName:
+    Description: EC2 Key Pair
+    Type: AWS::EC2::KeyPair::KeyName
+  
+  LaunchTemplateSG:
+    Description: Security Group for the Launch Template
+    Type: AWS::EC2::SecurityGroup::Id
+  
+  PublicSubnet1Id:
+    Description: Public Subnet 1 ID
+    Type: AWS::EC2::Subnet::Id
+  
+  PublicSubnet2Id:
+    Description: Public Subnet 2 ID
+    Type: AWS::EC2::Subnet::Id
+  
+  PublicSubnet3Id:
+    Description: Public Subnet 3 ID
+    Type: AWS::EC2::Subnet::Id
+
+  TargetGroup:
+    Description: Target Group ARN
+    Type: String
+
+  WebServerInstance:
+    Description: Web Server Instance ID
+    Type: String
 
 Resources:
   InstanceRole:
@@ -66,12 +84,12 @@ Resources:
     Properties:
       LaunchTemplateName: !Sub ${EnvironmentName} LaunchTemplate
       LaunchTemplateData:
-        ImageId: !Ref WebServerAMI
-        InstanceType: !GetAtt InstanceStack.Outputs.InstanceType
-        KeyName: !GetAtt InstanceStack.Outputs.KeyName
+        ImageId: !Ref AMI
+        InstanceType: !Ref InstanceType
+        KeyName: !Ref KeyName
         SecurityGroupIds:
-          - !GetAtt SecurityGroupStack.Outputs.LaunchTemplateSG
-        vpcId: !GetAtt VPCStack.Outputs.VPCId
+          - !Ref LaunchTemplateSG
+        vpcId: !Ref VpcId
         IamInstanceProfile:
           Name: !Ref InstanceProfile
         UserData:
@@ -99,11 +117,11 @@ Resources:
       MinSize: 1
       MaxSize: 5
       DesiredCapacity: 2
-      vpcId: !GetAtt VPCStack.Outputs.VPCId
+      vpcId: !Ref VpcId
       VPCZoneIdentifier:
-        - !Select [ 0, !Ref VPCStack.Outputs.PublicSubnetIds ]
-        - !Select [ 1, !Ref VPCStack.Outputs.PublicSubnetIds ]
-        - !Select [ 2, !Ref VPCStack.Outputs.PublicSubnetIds ]
+        - !Ref PublicSubnet1Id
+        - !Ref PublicSubnet2Id
+        - !Ref PublicSubnet3Id
       MetricsCollection:
         - Granularity: 1Minute
       TargetGroupARNs:
@@ -189,6 +207,46 @@ Resources:
           !Ref WebServerInstance
       ComparisonOperator: LessThanOrEqualToThreshold
       MetricName: CPUUtilization
+  HighMemoryAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      EvaluationPeriods: 2
+      Statistic: Average
+      Threshold: 50
+      AlarmDescription: 'Scales instances up based on memory utilization'
+      Period: 60
+      AlarmActions:
+      - !Ref ScaleOutPolicy
+      Namespace: System/Linux
+      Dimensions:
+      - Name: AutoScalingGroupName
+        Value:
+          !Ref AutoScalingGroup
+      - Name: InstanceId
+        Value:
+          !Ref WebServerInstance
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      MetricName: MemoryUtilization
+  LowMemoryAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      EvaluationPeriods: 2
+      Statistic: Average
+      Threshold: 20
+      AlarmDescription: 'Scales instances down based on memory utilization'
+      Period: 60
+      AlarmActions:
+      - !Ref ScaleInPolicy
+      Namespace: System/Linux
+      Dimensions:
+      - Name: AutoScalingGroupName
+        Value:
+          !Ref AutoScalingGroup
+      - Name: InstanceId
+        Value:
+          !Ref WebServerInstance
+      ComparisonOperator: LessThanOrEqualToThreshold
+      MetricName: MemoryUtilization
   StatusCheckFailedAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:

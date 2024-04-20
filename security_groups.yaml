@@ -6,15 +6,23 @@ Parameters:
   EnvironmentName:
     Description: An environment name that is prefixed to resource names
     Type: String
-    Default: devops2  
+  
+  VpcId:
+    Description: VPC ID
+    Type: AWS::EC2::VPC::Id
 
 Resources:
   WebServerSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      VpcId: !Ref VPCStack.Outputs.VpcId
+      VpcId: !Ref VpcId
       GroupDescription: Enable HTTP access via port 80
       SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
         - IpProtocol: tcp
           FromPort: '80'
           ToPort: '80'
@@ -23,18 +31,23 @@ Resources:
   BastionSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      VpcId: !Ref VPCStack.Outputs.VpcId
+      VpcId: !Ref VpcId
       GroupDescription: Enable SSH access via port 22
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: '22'
           ToPort: '22'
           CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
 
   LaunchTemplateSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      VpcId: !Ref VPCStack.Outputs.VpcId
+      VpcId: !Ref VpcId
       GroupDescription: Enable SSH access via port 22 and HTTP access via port 80
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -45,11 +58,17 @@ Resources:
           FromPort: '80'
           ToPort: '80'
           CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+        
   
   DBServerSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      VpcId: !Ref VPCStack.Outputs.VpcId
+      VpcId: !Ref VpcId
       GroupDescription: Enable MySQL access via port 3306
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -64,7 +83,23 @@ Resources:
           FromPort: '1433'
           ToPort: '1433'
           SourceSecurityGroupId: !GetAtt WebServerSG.GroupId
-      
+Outputs:
+  WebServerSG:
+    Description: Web Server Security Group
+    Value: !Ref WebServerSG
+
+  BastionSG:
+    Description: Bastion Host Security Group
+    Value: !Ref BastionSG
+
+  LaunchTemplateSG:
+    Description: Launch Template Security Group
+    Value: !Ref LaunchTemplateSG
+
+  DBServerSG:
+    Description: Database Server Security Group
+    Value: !Ref DBServerSG
+  
     
 
   

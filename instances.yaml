@@ -6,12 +6,14 @@ Parameters:
   EnvironmentName:
     Description: An environment name that is prefixed to resource names
     Type: String
-    Default: devops2
 
   InstanceType:
     Description: EC2 instance type
     Type: String
-    Default: t2.nano
+  
+  AMI:
+    Description: AMI ID from custom image on the console for web server and database server
+    Type: AWS::EC2::Image::Id
 
   BastionAMI:
     Description: AMI ID from custom image on the console for bastion host
@@ -21,46 +23,61 @@ Parameters:
   KeyName:
     Description: EC2 Key Pair
     Type: AWS::EC2::KeyPair::KeyName
-    Default: instance-key
 
   DBServerSG:
     Description: Database Server Security Group
     Type: AWS::EC2::SecurityGroup::Id
-    Default: !GetAtt SecurityGroupStack.Outputs.DBServerSG
-
+    
   BastionSG:
     Description: Bastion Host Security Group
     Type: AWS::EC2::SecurityGroup::Id
-    Default: !GetAtt SecurityGroupStack.Outputs.BastionSG
+
+  WebServerSG:
+    Description: Web Server Security Group
+    Type: AWS::EC2::SecurityGroup::Id
+  
+  VpcId:
+    Description: VPC ID
+    Type: AWS::EC2::VPC::Id
+  
+  PrivateSubnet1Id:
+    Description: Private Subnet 1 ID
+    Type: AWS::EC2::Subnet::Id
+
+  PublicSubnet1Id:
+    Description: Public Subnet 1 ID
+    Type: AWS::EC2::Subnet::Id
+  
+  PublicSubnet2Id:
+    Description: Public Subnet 2 ID
+    Type: AWS::EC2::Subnet::Id
 
 Resources:
-  # WebServerInstance:
-  #   Type: AWS::EC2::Instance
-  #   Properties:
-  #     InstanceType: !Ref InstanceType
-  #     ImageId: !Ref WebServerAMI
-  #     KeyName: !Ref KeyName
-  #     SecurityGroupIds:
-  #       - !Ref WebServerSG
-  #     SubnetId: !Select [ 0, !Ref VPCStack.Outputs.PublicSubnetIds ]
-  #     UserData:
-  #       Fn::Base64: !Sub |
-  #        - !Ref UserData
-  #     Tags:
-  #       - Key: Name
-  #         Value: !Sub ${EnvironmentName} Web Server
-
   DBServerInstance:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: !Ref InstanceType
       ImageId: !Ref AMI
+      VpcId: !Ref VpcId
       SecurityGroupIds:
         - !Ref DBServerSG
-      SubnetId: !Select [ 0, !Ref VPCStack.Outputs.PrivateSubnetIds ]
+      SubnetId: !Ref PrivateSubnet1Id
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} Database Server
+  
+  WebServerInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !Ref AMI
+      SecurityGroupIds:
+        - !Ref WebServerSG
+      VpcId: !Ref VpcId
+      SubnetId: !Ref PublicSubnet1Id
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Web Server
 
   BastionHostInstance:
     Type: AWS::EC2::Instance
@@ -68,9 +85,23 @@ Resources:
       InstanceType: !Ref InstanceType
       ImageId: !Ref BastionAMI
       KeyName: !Ref KeyName
+      VpcId: !Ref VpcId
       SecurityGroupIds:
         - !Ref BastionSG
-      SubnetId: !Select [ 0, !Ref VPCStack.Outputs.PublicSubnetIds ]
+      SubnetId: !Ref PublicSubnet2Id
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} Bastion Host
+
+Outputs:
+  WebServerInstance:
+    Description: Web Server Instance
+    Value: !Ref WebServerInstance
+
+  DBServerInstance:
+    Description: Database Server Instance
+    Value: !Ref DBServerInstance
+
+  BastionHostInstance:
+    Description: Bastion Host Instance
+    Value: !Ref BastionHostInstance
