@@ -46,7 +46,7 @@ Resources:
       HealthCheckEnabled: True
       HealthCheckPath: /
       HealthCheckIntervalSeconds: 30
-      HealthCheckPort: 80
+      HealthCheckPort: 3000
       HealthCheckProtocol: HTTP
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 5

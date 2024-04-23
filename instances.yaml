@@ -15,10 +15,6 @@ Parameters:
     Description: AMI ID from custom image on the console for web server and database server
     Type: AWS::EC2::Image::Id
 
-  BastionAMI:
-    Description: AMI ID from custom image on the console for bastion host
-    Type: AWS::EC2::Image::Id
-  
   DbServerAMI:
     Description: AMI ID from custom image on the console for database server
     Type: AWS::EC2::Image::Id
@@ -29,10 +25,6 @@ Parameters:
 
   DBServerSG:
     Description: Database Server Security Group
-    Type: AWS::EC2::SecurityGroup::Id
-    
-  BastionSG:
-    Description: Bastion Host Security Group
     Type: AWS::EC2::SecurityGroup::Id
 
   WebServerSG:
@@ -61,6 +53,7 @@ Resources:
     Properties:
       InstanceType: !Ref InstanceType
       ImageId: !Ref DbServerAMI
+      KeyName: !Ref KeyName
       VpcId: !Ref VpcId
       SecurityGroupIds:
         - !Ref DBServerSG
@@ -74,6 +67,7 @@ Resources:
     Properties:
       InstanceType: !Ref InstanceType
       ImageId: !Ref WebServerAMI
+      KeyName: !Ref KeyName
       SecurityGroupIds:
         - !Ref WebServerSG
       VpcId: !Ref VpcId
@@ -81,20 +75,6 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} Web Server
-
-  BastionHostInstance:
-    Type: AWS::EC2::Instance
-    Properties:
-      InstanceType: !Ref InstanceType
-      ImageId: !Ref BastionAMI
-      KeyName: !Ref KeyName
-      VpcId: !Ref VpcId
-      SecurityGroupIds:
-        - !Ref BastionSG
-      SubnetId: !Ref PublicSubnet2Id
-      Tags:
-        - Key: Name
-          Value: !Sub ${EnvironmentName} Bastion Host
 
 Outputs:
   WebServerInstanceId:
@@ -104,7 +84,3 @@ Outputs:
   DBServerInstanceId:
     Description: Database Server Instance
     Value: !Ref DBServerInstance
-
-  BastionHostInstanceId:
-    Description: Bastion Host Instance
-    Value: !Ref BastionHostInstance
