@@ -22,10 +22,13 @@ Resources:
           FromPort: '80'
           ToPort: '80'
           CidrIp: 0.0.0.0/0
-      SecurityGroupEgress:
         - IpProtocol: tcp
-          FromPort: '80'
-          ToPort: '80'
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '3000'
+          ToPort: '3000'
           CidrIp: 0.0.0.0/0
   
   BastionSG:
@@ -43,46 +46,22 @@ Resources:
           FromPort: '80'
           ToPort: '80'
           CidrIp: 0.0.0.0/0
-
-  LaunchTemplateSG:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      VpcId: !Ref VpcId
-      GroupDescription: Enable SSH access via port 22 and HTTP access via port 80
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: '22'
-          ToPort: '22'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '80'
-          ToPort: '80'
-          CidrIp: 0.0.0.0/0
-      SecurityGroupEgress:
-        - IpProtocol: tcp
-          FromPort: '80'
-          ToPort: '80'
-          CidrIp: 0.0.0.0/0
-        
   
   DBServerSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref VpcId
-      GroupDescription: Enable MySQL access via port 3306
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: '3306'
-          ToPort: '3306'
-          SourceSecurityGroupId: !GetAtt WebServerSG.GroupId
-        - IpProtocol: tcp
-          FromPort: '22'
-          ToPort: '22'
-          SourceSecurityGroupId: !GetAtt BastionSG.GroupId
-        - IpProtocol: tcp
-          FromPort: '1433'
-          ToPort: '1433'
-          SourceSecurityGroupId: !GetAtt WebServerSG.GroupId
+    GroupDescription: Enable MongoDB access via port 27017
+    SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: '27017'
+        ToPort: '27017'
+        SourceSecurityGroupId: !GetAtt WebServerSG.GroupId
+      - IpProtocol: tcp
+        FromPort: '22'
+        ToPort: '22'
+        SourceSecurityGroupId: !GetAtt BastionSG.GroupId
+
 Outputs:
   WebServerSG:
     Description: Web Server Security Group
@@ -91,10 +70,6 @@ Outputs:
   BastionSG:
     Description: Bastion Host Security Group
     Value: !Ref BastionSG
-
-  LaunchTemplateSG:
-    Description: Launch Template Security Group
-    Value: !Ref LaunchTemplateSG
 
   DBServerSG:
     Description: Database Server Security Group

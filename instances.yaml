@@ -11,14 +11,17 @@ Parameters:
     Description: EC2 instance type
     Type: String
   
-  AMI:
+  WebServerAMI:
     Description: AMI ID from custom image on the console for web server and database server
     Type: AWS::EC2::Image::Id
 
   BastionAMI:
     Description: AMI ID from custom image on the console for bastion host
     Type: AWS::EC2::Image::Id
-    Default: ami-0bf0558a1b312d976
+  
+  DbServerAMI:
+    Description: AMI ID from custom image on the console for database server
+    Type: AWS::EC2::Image::Id
 
   KeyName:
     Description: EC2 Key Pair
@@ -57,7 +60,7 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: !Ref InstanceType
-      ImageId: !Ref AMI
+      ImageId: !Ref DbServerAMI
       VpcId: !Ref VpcId
       SecurityGroupIds:
         - !Ref DBServerSG
@@ -70,7 +73,7 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: !Ref InstanceType
-      ImageId: !Ref AMI
+      ImageId: !Ref WebServerAMI
       SecurityGroupIds:
         - !Ref WebServerSG
       VpcId: !Ref VpcId
@@ -94,14 +97,14 @@ Resources:
           Value: !Sub ${EnvironmentName} Bastion Host
 
 Outputs:
-  WebServerInstance:
+  WebServerInstanceId:
     Description: Web Server Instance
     Value: !Ref WebServerInstance
 
-  DBServerInstance:
+  DBServerInstanceId:
     Description: Database Server Instance
     Value: !Ref DBServerInstance
 
-  BastionHostInstance:
+  BastionHostInstanceId:
     Description: Bastion Host Instance
     Value: !Ref BastionHostInstance

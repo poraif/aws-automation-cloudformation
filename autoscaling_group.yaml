@@ -12,7 +12,7 @@ Parameters:
     Description: An environment name that is prefixed to resource names
     Type: String
 
-  AMI:
+  WebServerAMI:
     Description: AMI ID from custom image on the console for web server
     Type: AWS::EC2::Image::Id
   
@@ -33,7 +33,7 @@ Parameters:
     Description: EC2 Key Pair
     Type: AWS::EC2::KeyPair::KeyName
   
-  LaunchTemplateSG:
+  WebServerSG:
     Description: Security Group for the Launch Template
     Type: AWS::EC2::SecurityGroup::Id
   
@@ -53,53 +53,26 @@ Parameters:
     Description: Target Group ARN
     Type: String
 
-  WebServerInstance:
+  WebServerInstanceId:
     Description: Web Server Instance ID
     Type: String
 
 Resources:
-  InstanceRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: InstanceRole
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-        - Effect: 'Allow'
-          Principal:
-            Service:
-            - 'ec2.amazonaws.com'
-          Action:
-          - 'sts:AssumeRole'
-      ManagedPolicyArns:
-        - 'arn:aws:iam::aws:policy/myCustomerManagedPolicy'
-  InstanceProfile:
-    Type: AWS::IAM::InstanceProfile
-    Properties:
-      Path: '/'
-      Roles:
-      - !Ref InstanceRole
   LaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
     Properties:
-      LaunchTemplateName: !Sub ${EnvironmentName} LaunchTemplate
       LaunchTemplateData:
-        ImageId: !Ref AMI
+        ImageId: !Ref WebServerAMI
         InstanceType: !Ref InstanceType
         KeyName: !Ref KeyName
         SecurityGroupIds:
-          - !Ref LaunchTemplateSG
-        vpcId: !Ref VpcId
+          - !Ref WebServerSG
         IamInstanceProfile:
-          Name: !Ref InstanceProfile
+          Name: LabRole
         UserData:
           Fn::Base64: !Sub |
             #!/bin/bash -xe
-            yum update -y
-            yum install -y httpd
-            systemctl start httpd
-            systemctl enable httpd
-            echo "<html><h1>Hello World</h1></html>" > /var/www/html/index.html
+            sudo -u ec2-user bash -c '/home/ec2-user/applaunch.sh'
         Monitoring:
           Enabled: true
         TagSpecifications:
@@ -117,7 +90,6 @@ Resources:
       MinSize: 1
       MaxSize: 5
       DesiredCapacity: 2
-      vpcId: !Ref VpcId
       VPCZoneIdentifier:
         - !Ref PublicSubnet1Id
         - !Ref PublicSubnet2Id
@@ -184,7 +156,7 @@ Resources:
           !Ref AutoScalingGroup
       - Name: InstanceId
         Value:
-          !Ref WebServerInstance
+          !Ref WebServerInstanceId
       ComparisonOperator: GreaterThanOrEqualToThreshold
       MetricName: CPUUtilization
   LowCPUAlarm:
@@ -204,7 +176,7 @@ Resources:
           !Ref AutoScalingGroup
       - Name: InstanceId
         Value:
-          !Ref WebServerInstance
+          !Ref WebServerInstanceId
       ComparisonOperator: LessThanOrEqualToThreshold
       MetricName: CPUUtilization
   HighMemoryAlarm:
@@ -224,7 +196,7 @@ Resources:
           !Ref AutoScalingGroup
       - Name: InstanceId
         Value:
-          !Ref WebServerInstance
+          !Ref WebServerInstanceId
       ComparisonOperator: GreaterThanOrEqualToThreshold
       MetricName: MemoryUtilization
   LowMemoryAlarm:
@@ -244,7 +216,7 @@ Resources:
           !Ref AutoScalingGroup
       - Name: InstanceId
         Value:
-          !Ref WebServerInstance
+          !Ref WebServerInstanceId
       ComparisonOperator: LessThanOrEqualToThreshold
       MetricName: MemoryUtilization
   StatusCheckFailedAlarm:
@@ -264,7 +236,7 @@ Resources:
           !Ref AutoScalingGroup
       - Name: InstanceId
         Value:
-          !Ref WebServerInstance
+          !Ref WebServerInstanceId
       ComparisonOperator: GreaterThanOrEqualToThreshold
       MetricName: StatusCheckFailed
   SNSTopic:

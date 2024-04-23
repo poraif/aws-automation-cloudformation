@@ -13,7 +13,7 @@ Parameters:
     Description: VPC ID
     Type: AWS::EC2::VPC::Id
   
-  WebServerInstance:
+  WebServerInstanceId:
     Description: Web Server Instance
     Type: AWS::EC2::Instance::Id
   
@@ -37,13 +37,12 @@ Resources:
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      Name: !Sub ${EnvironmentName} TargetGroup 
       Port: 80
       Protocol: HTTP
       VpcId: !Ref VpcId
       TargetType: instance
       Targets:
-        - Id: !Ref WebServerInstance
+        - Id: !Ref WebServerInstanceId
       HealthCheckEnabled: True
       HealthCheckPath: /
       HealthCheckIntervalSeconds: 30
@@ -52,20 +51,24 @@ Resources:
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 5
       UnhealthyThresholdCount: 2
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} TG
 
   LoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      Name: !Sub ${EnvironmentName} Load Balancer
       Type: application
       Scheme: internet-facing
-      VpcId: !Ref VpcId
       SecurityGroups:
         - !Ref WebServerSG
       SubnetMappings:
         - SubnetId: !Ref PublicSubnet1Id
         - SubnetId: !Ref PublicSubnet2Id
         - SubnetId: !Ref PublicSubnet3Id
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} LB
 
   Listener:
     Type: AWS::ElasticLoadBalancingV2::Listener

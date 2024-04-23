@@ -18,10 +18,20 @@ Parameters:
     Type: AWS::EC2::KeyPair::KeyName
     Default: instance-key
   
-  AMI:
+  WebServerAMI:
     Description: AMI ID from custom image on the console for web server
     Type: AWS::EC2::Image::Id
     Default: ami-082d160f4bd6aeb34
+  
+  BastionAMI:
+    Description: AMI ID from custom image on the console for bastion host
+    Type: AWS::EC2::Image::Id
+    Default: ami-0bf0558a1b312d976
+  
+  DbServerAMI:
+    Description: AMI ID from custom image on the console for database server
+    Type: AWS::EC2::Image::Id
+    Default: ami-0a313d6098716f372
 
 Resources:
   VPCStack:
@@ -44,7 +54,11 @@ Resources:
     Properties:
       TemplateURL: 'https://cf-templates-1eco1r5bhxzo9-us-east-1.s3.amazonaws.com/instances.yaml'
       Parameters:
-        AMI: !Ref AMI
+        BastionAMI: !Ref BastionAMI
+        DbServerAMI: !Ref DbServerAMI
+        EnvironmentName: !Ref EnvironmentName
+        InstanceType: !Ref InstanceType
+        KeyName: !Ref KeyName
         VpcId: !GetAtt VPCStack.Outputs.VpcId
         BastionSG: !GetAtt SecurityGroupStack.Outputs.BastionSG
         DBServerSG: !GetAtt SecurityGroupStack.Outputs.DBServerSG
@@ -52,9 +66,7 @@ Resources:
         PublicSubnet1Id: !GetAtt VPCStack.Outputs.PublicSubnet1Id
         PublicSubnet2Id: !GetAtt VPCStack.Outputs.PublicSubnet2Id
         PrivateSubnet1Id: !GetAtt VPCStack.Outputs.PrivateSubnet1Id
-        EnvironmentName: !Ref EnvironmentName
-        InstanceType: !Ref InstanceType
-        KeyName: !Ref KeyName
+  
 
   LoadBalancerStack:
     Type: AWS::CloudFormation::Stack
@@ -62,7 +74,7 @@ Resources:
       TemplateURL: 'https://cf-templates-1eco1r5bhxzo9-us-east-1.s3.amazonaws.com/load_balancer.yaml'
       Parameters:
         VpcId: !GetAtt VPCStack.Outputs.VpcId
-        WebServerInstance: !GetAtt InstanceStack.Outputs.WebServerInstance
+        WebServerInstanceId: !GetAtt InstanceStack.Outputs.WebServerInstanceId
         EnvironmentName: !Ref EnvironmentName
         WebServerSG: !GetAtt SecurityGroupStack.Outputs.WebServerSG
         PublicSubnet1Id: !GetAtt VPCStack.Outputs.PublicSubnet1Id
@@ -75,15 +87,15 @@ Resources:
       TemplateURL: 'https://cf-templates-1eco1r5bhxzo9-us-east-1.s3.amazonaws.com/autoscaling_group.yaml'
       Parameters:
         VpcId: !GetAtt VPCStack.Outputs.VpcId
-        AMI: !Ref AMI
+        WebServerAMI: !Ref WebServerAMI
         EnvironmentName: !Ref EnvironmentName
         InstanceType: !Ref InstanceType
         KeyName: !Ref KeyName
-        LaunchTemplateSG: !GetAtt SecurityGroupStack.Outputs.LaunchTemplateSG
+        WebServerSG: !GetAtt SecurityGroupStack.Outputs.webServerSG
         PublicSubnet1Id: !GetAtt VPCStack.Outputs.PublicSubnet1Id
         PublicSubnet2Id: !GetAtt VPCStack.Outputs.PublicSubnet2Id
         PublicSubnet3Id: !GetAtt VPCStack.Outputs.PublicSubnet3Id
         TargetGroup: !GetAtt LoadBalancerStack.Outputs.TargetGroup
-        WebServerInstance: !GetAtt InstanceStack.Outputs.WebServerInstance
+        WebServerInstanceId: !GetAtt InstanceStack.Outputs.WebServerInstanceId
     
 
