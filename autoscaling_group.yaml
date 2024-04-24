@@ -51,12 +51,8 @@ Parameters:
 
   TargetGroup:
     Description: Target Group ARN
-    Type: String
-
-  WebServerInstanceId:
-    Description: Web Server Instance ID
-    Type: String
-
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup::TargetGroupArn
+    
 Resources:
   LaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
@@ -79,7 +75,7 @@ Resources:
           - ResourceType: instance
             Tags:
               - Key: Name
-                Value: !Sub ${EnvironmentName} WebServerInstance
+                Value: !Sub ${EnvironmentName} LaunchTemplate
 
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -158,9 +154,6 @@ Resources:
       - Name: AutoScalingGroupName
         Value:
           !Ref AutoScalingGroup
-      - Name: InstanceId
-        Value:
-          !Ref WebServerInstanceId
       ComparisonOperator: GreaterThanOrEqualToThreshold
       MetricName: CPUUtilization
 
@@ -179,9 +172,6 @@ Resources:
       - Name: AutoScalingGroupName
         Value:
           !Ref AutoScalingGroup
-      - Name: InstanceId
-        Value:
-          !Ref WebServerInstanceId
       ComparisonOperator: LessThanOrEqualToThreshold
       MetricName: CPUUtilization
 
@@ -200,9 +190,6 @@ Resources:
       - Name: AutoScalingGroupName
         Value:
           !Ref AutoScalingGroup
-      - Name: InstanceId
-        Value:
-          !Ref WebServerInstanceId
       ComparisonOperator: GreaterThanOrEqualToThreshold
       MetricName: MemoryUtilization
 
@@ -221,9 +208,6 @@ Resources:
       - Name: AutoScalingGroupName
         Value:
           !Ref AutoScalingGroup
-      - Name: InstanceId
-        Value:
-          !Ref WebServerInstanceId
       ComparisonOperator: LessThanOrEqualToThreshold
       MetricName: MemoryUtilization
 
@@ -242,9 +226,6 @@ Resources:
       - Name: AutoScalingGroupName
         Value:
           !Ref AutoScalingGroup
-      - Name: InstanceId
-        Value:
-          !Ref WebServerInstanceId
       ComparisonOperator: GreaterThanOrEqualToThreshold
       MetricName: StatusCheckFailed
 

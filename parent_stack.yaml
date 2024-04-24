@@ -49,16 +49,12 @@ Resources:
     Properties:
       TemplateURL: 'https://cf-templates-1eco1r5bhxzo9-us-east-1.s3.amazonaws.com/instances.yaml'
       Parameters:
-        WebServerAMI: !Ref WebServerAMI
         DbServerAMI: !Ref DbServerAMI
         EnvironmentName: !Ref EnvironmentName
         InstanceType: !Ref InstanceType
         KeyName: !Ref KeyName
         VpcId: !GetAtt VPCStack.Outputs.VpcId
         DBServerSG: !GetAtt SecurityGroupStack.Outputs.DBServerSG
-        WebServerSG: !GetAtt SecurityGroupStack.Outputs.WebServerSG
-        PublicSubnet1Id: !GetAtt VPCStack.Outputs.PublicSubnet1Id
-        PublicSubnet2Id: !GetAtt VPCStack.Outputs.PublicSubnet2Id
         PrivateSubnet1Id: !GetAtt VPCStack.Outputs.PrivateSubnet1Id
   
 
@@ -68,7 +64,6 @@ Resources:
       TemplateURL: 'https://cf-templates-1eco1r5bhxzo9-us-east-1.s3.amazonaws.com/load_balancer.yaml'
       Parameters:
         VpcId: !GetAtt VPCStack.Outputs.VpcId
-        WebServerInstanceId: !GetAtt InstanceStack.Outputs.WebServerInstanceId
         EnvironmentName: !Ref EnvironmentName
         WebServerSG: !GetAtt SecurityGroupStack.Outputs.WebServerSG
         PublicSubnet1Id: !GetAtt VPCStack.Outputs.PublicSubnet1Id
@@ -90,6 +85,5 @@ Resources:
         PublicSubnet2Id: !GetAtt VPCStack.Outputs.PublicSubnet2Id
         PublicSubnet3Id: !GetAtt VPCStack.Outputs.PublicSubnet3Id
         TargetGroup: !GetAtt LoadBalancerStack.Outputs.TargetGroup
-        WebServerInstanceId: !GetAtt InstanceStack.Outputs.WebServerInstanceId
     
 

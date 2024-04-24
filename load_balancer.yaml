@@ -13,10 +13,6 @@ Parameters:
     Description: VPC ID
     Type: AWS::EC2::VPC::Id
   
-  WebServerInstanceId:
-    Description: Web Server Instance
-    Type: AWS::EC2::Instance::Id
-  
   WebServerSG:
     Description: Web Server Security Group
     Type: AWS::EC2::SecurityGroup::Id
@@ -41,8 +37,6 @@ Resources:
       Protocol: HTTP
       VpcId: !Ref VpcId
       TargetType: instance
-      Targets:
-        - Id: !Ref WebServerInstanceId
       HealthCheckEnabled: True
       HealthCheckPath: /
       HealthCheckIntervalSeconds: 30
