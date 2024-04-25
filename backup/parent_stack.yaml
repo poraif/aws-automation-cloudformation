@@ -1,6 +1,6 @@
 # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-instance.html
 
-Description: This template creates a nested stack, allowing multiple templates to be deployed in a more modular way.
+Description: This template creates a nested stack, allowing multiple templates to be deployed in a single operation
 
 Parameters:
   EnvironmentName:
@@ -21,12 +21,12 @@ Parameters:
   WebServerAMI:
     Description: AMI ID from custom image on the console for web server
     Type: AWS::EC2::Image::Id
-    Default: 	ami-0406cef71d445a3a3
+    Default: ami-04410bc34dc8d118b
 
-  BastionAMI:
-    Description: AMI ID from custom image on the console for bastion host
+  DbServerAMI:
+    Description: AMI ID from custom image on the console for database server
     Type: AWS::EC2::Image::Id
-    Default: ami-030128499f8d6f019
+    Default: ami-01baa22fb7a2731d9
 
 Resources:
   VPCStack:
@@ -49,13 +49,13 @@ Resources:
     Properties:
       TemplateURL: 'https://cf-templates-1eco1r5bhxzo9-us-east-1.s3.amazonaws.com/instances.yaml'
       Parameters:
+        DbServerAMI: !Ref DbServerAMI
         EnvironmentName: !Ref EnvironmentName
         InstanceType: !Ref InstanceType
-        BastionAMI: !Ref BastionAMI
-        BastionSG: !GetAtt SecurityGroupStack.Outputs.BastionSG
-        PublicSubnet1Id: !GetAtt VPCStack.Outputs.PublicSubnet1Id
         KeyName: !Ref KeyName
         VpcId: !GetAtt VPCStack.Outputs.VpcId
+        DBServerSG: !GetAtt SecurityGroupStack.Outputs.DBServerSG
+        PrivateSubnet1Id: !GetAtt VPCStack.Outputs.PrivateSubnet1Id
   
 
   LoadBalancerStack:
@@ -65,7 +65,7 @@ Resources:
       Parameters:
         VpcId: !GetAtt VPCStack.Outputs.VpcId
         EnvironmentName: !Ref EnvironmentName
-        LoadBalancerSG: !GetAtt SecurityGroupStack.Outputs.LoadBalancerSG
+        WebServerSG: !GetAtt SecurityGroupStack.Outputs.WebServerSG
         PublicSubnet1Id: !GetAtt VPCStack.Outputs.PublicSubnet1Id
         PublicSubnet2Id: !GetAtt VPCStack.Outputs.PublicSubnet2Id
         PublicSubnet3Id: !GetAtt VPCStack.Outputs.PublicSubnet3Id
@@ -81,9 +81,9 @@ Resources:
         EnvironmentName: !Ref EnvironmentName
         InstanceType: !Ref InstanceType
         KeyName: !Ref KeyName
-        PrivateSubnet1Id: !GetAtt VPCStack.Outputs.PrivateSubnet1Id
-        PrivateSubnet2Id: !GetAtt VPCStack.Outputs.PrivateSubnet2Id
-        PrivateSubnet3Id: !GetAtt VPCStack.Outputs.PrivateSubnet3Id
+        PublicSubnet1Id: !GetAtt VPCStack.Outputs.PublicSubnet1Id
+        PublicSubnet2Id: !GetAtt VPCStack.Outputs.PublicSubnet2Id
+        PublicSubnet3Id: !GetAtt VPCStack.Outputs.PublicSubnet3Id
         TargetGroup: !GetAtt LoadBalancerStack.Outputs.TargetGroup
     
 

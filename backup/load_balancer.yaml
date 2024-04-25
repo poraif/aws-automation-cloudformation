@@ -2,7 +2,7 @@
 # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-loadbalancer.html
 # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-listener.html
 
-Description: This template sets up the target group, load balancer, and listener for my environment. The targget group has stickiness enabled to handle sessions.
+Description: This template sets up the target group, load balancer, and listener for my environment.
 
 Parameters:
   EnvironmentName:
@@ -13,8 +13,8 @@ Parameters:
     Description: VPC ID
     Type: AWS::EC2::VPC::Id
   
-  LoadBalancerSG:
-    Description: Load Balancer Security Group
+  WebServerSG:
+    Description: Web Server Security Group
     Type: AWS::EC2::SecurityGroup::Id
   
   PublicSubnet1Id:
@@ -62,7 +62,7 @@ Resources:
       Type: application
       Scheme: internet-facing
       SecurityGroups:
-        - !Ref LoadBalancerSG
+        - !Ref WebServerSG
       SubnetMappings:
         - SubnetId: !Ref PublicSubnet1Id
         - SubnetId: !Ref PublicSubnet2Id

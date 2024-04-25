@@ -1,6 +1,8 @@
 # https://docs.aws.amazon.com/codebuild/latest/userguide/cloudformation-vpc-template.html
 
-Description:  This template deploys a VPC, with 3 public subnets for the load balancer and 3 private subnets for the web server to launch in. Private and public subnets are across 3 AZs. There is 1 NAT gateway to allow the web servers to access the internet.
+Description:  This template deploys a VPC, with 2 public and 2 private subnets
+  across two Availability Zones. It deploys an internet gateway, with a default
+  route on the public subnets. It deploys 1 NAT gateway,and default route in the private subnet.
 
 Parameters:
   EnvironmentName:
@@ -29,19 +31,14 @@ Parameters:
     Default: 10.0.2.0/24
 
   PrivateSubnet1CIDR:
-    Description: Private subnet CIDR
+    Description: Private subnet 1 CIDR
     Type: String
     Default: 10.0.3.0/24
   
   PrivateSubnet2CIDR:
-    Description: Private subnet CIDR
+    Description: Private subnet 2 CIDR
     Type: String
     Default: 10.0.4.0/24
-  
-  PrivateSubnet3CIDR:
-    Description: Private subnet CIDR
-    Type: String
-    Default: 10.0.5.0/24
 
 Resources:
   VPC:
@@ -110,7 +107,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} Private Subnet (AZ1)
-  
+
   PrivateSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
@@ -121,17 +118,6 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} Private Subnet (AZ2)
-  
-  PrivateSubnet3:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VPC
-      AvailabilityZone: us-east-1c
-      CidrBlock: !Ref PrivateSubnet3CIDR
-      MapPublicIpOnLaunch: false
-      Tags:
-        - Key: Name
-          Value: !Sub ${EnvironmentName} Private Subnet (AZ3)
 
   NatGatewayEIP:
     Type: AWS::EC2::EIP
@@ -172,14 +158,8 @@ Resources:
     Properties:
       RouteTableId: !Ref PublicRouteTable
       SubnetId: !Ref PublicSubnet2
-  
-  PublicSubnet3RouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref PublicRouteTable
-      SubnetId: !Ref PublicSubnet3
 
-  PrivateRouteTable:
+  PrivateRouteTable1:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
@@ -187,30 +167,39 @@ Resources:
         - Key: Name
           Value: !Sub ${EnvironmentName} Private Routes (AZ1)
 
-  DefaultPrivateRoute:
+  DefaultPrivateRoute1:
     Type: AWS::EC2::Route
     Properties:
-      RouteTableId: !Ref PrivateRouteTable
+      RouteTableId: !Ref PrivateRouteTable1
       DestinationCidrBlock: 0.0.0.0/0
       NatGatewayId: !Ref NatGateway
 
   PrivateSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      RouteTableId: !Ref PrivateRouteTable
+      RouteTableId: !Ref PrivateRouteTable1
       SubnetId: !Ref PrivateSubnet1
-  
+
+  PrivateRouteTable2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Private Routes (AZ2)
+
+  DefaultPrivateRoute2:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+
   PrivateSubnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      RouteTableId: !Ref PrivateRouteTable
+      RouteTableId: !Ref PrivateRouteTable2
       SubnetId: !Ref PrivateSubnet2
-  
-  PrivateSubnet3RouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref PrivateRouteTable
-      SubnetId: !Ref PrivateSubnet3
 
 Outputs:
   VpcId:
@@ -233,11 +222,6 @@ Outputs:
     Description: Private Subnet 1 ID
     Value: !Ref PrivateSubnet1
   
-  PrivateSubnet2Id:
+  PrivateSubnet2Id: 
     Description: Private Subnet 2 ID
     Value: !Ref PrivateSubnet2
-  
-  PrivateSubnet3Id:
-    Description: Private Subnet 3 ID
-    Value: !Ref PrivateSubnet3
-    

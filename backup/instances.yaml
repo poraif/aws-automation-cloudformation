@@ -1,6 +1,6 @@
 # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-instance.html
 
-Description: This template deploys the bastion host instance for my environment. Future iterations will include DB server instance here.
+Description: This template deploys the DB instance for my environment.
 
 Parameters:
   EnvironmentName:
@@ -11,37 +11,42 @@ Parameters:
     Description: EC2 instance type
     Type: String
 
+  DbServerAMI:
+    Description: AMI ID from custom image on the console for database server
+    Type: AWS::EC2::Image::Id
+
   KeyName:
     Description: EC2 Key Pair
     Type: AWS::EC2::KeyPair::KeyName
+
+  DBServerSG:
+    Description: Database Server Security Group
+    Type: AWS::EC2::SecurityGroup::Id
   
   VpcId:
     Description: VPC ID
     Type: AWS::EC2::VPC::Id
   
-  BastionAMI:
-    Description: AMI ID from custom image on the console for bastion host
-    Type: AWS::EC2::Image::Id
-
-  BastionSG:
-    Description: Bastion Security Group
-    Type: AWS::EC2::SecurityGroup::Id
-  
-  PublicSubnet1Id:
-    Description: Public Subnet 1 ID
+  PrivateSubnet1Id:
+    Description: Private Subnet 1 ID
     Type: AWS::EC2::Subnet::Id
 
 Resources:
-  BastionHost:
+  DBServerInstance:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: !Ref InstanceType
-      ImageId: !Ref BastionAMI
+      ImageId: !Ref DbServerAMI
       KeyName: !Ref KeyName
       VpcId: !Ref VpcId
       SecurityGroupIds:
-        - !Ref BastionSG
-      SubnetId: !Ref PublicSubnet1Id
+        - !Ref DBServerSG
+      SubnetId: !Ref PrivateSubnet1Id
       Tags:
         - Key: Name
-          Value: !Sub ${EnvironmentName} Bastion Host
+          Value: !Sub ${EnvironmentName} Database Server
+
+Outputs:
+  DBServerInstanceId:
+    Description: Database Server Instance
+    Value: !Ref DBServerInstance

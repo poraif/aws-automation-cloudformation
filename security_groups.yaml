@@ -1,6 +1,6 @@
 # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-securitygroup.html
 
-Description: This template deploys security groups required for the instances in my environment.
+Description: This template deploys bastion, load balancer, and web server security groups for my environment.
 
 Parameters:
   EnvironmentName:
@@ -12,7 +12,18 @@ Parameters:
     Type: AWS::EC2::VPC::Id
 
 Resources:
-  WebServerSG:
+  BastionSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcId
+      GroupDescription: Enable SSH access via port 22
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+  
+  LoadBalancerSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref VpcId
@@ -22,38 +33,34 @@ Resources:
           FromPort: '80'
           ToPort: '80'
           CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '22'
-          ToPort: '22'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '3000'
-          ToPort: '3000'
-          CidrIp: 0.0.0.0/0
   
-  DBServerSG:
+  WebServerSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref VpcId
-      GroupDescription: Enable MongoDB access via port 27017
+      GroupDescription: Enable HTTP access via port 80, port 3000 for node, 22 for SSH
       SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: '27017'
-        ToPort: '27017'
-        SourceSecurityGroupId: !GetAtt WebServerSG.GroupId
-      - IpProtocol: tcp
-        FromPort: '22'
-        ToPort: '22'
-        CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          SourceSecurityGroupId: !GetAtt BastionSG.GroupId
+        - IpProtocol: tcp
+          FromPort: '3000'
+          ToPort: '3000'
+          SourceSecurityGroupId: !GetAtt LoadBalancerSG.GroupId
 
 Outputs:
   WebServerSG:
     Description: Web Server Security Group
     Value: !Ref WebServerSG
 
-  DBServerSG:
-    Description: Database Server Security Group
-    Value: !Ref DBServerSG
+  LoadBalancerSG:
+    Description: LB Security Group
+    Value: !Ref LoadBalancerSG
+  
+  BastionSG:
+    Description: Bastion Security Group
+    Value: !Ref BastionSG
   
     
 
