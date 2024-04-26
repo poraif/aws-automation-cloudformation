@@ -21,7 +21,7 @@ Parameters:
   WebServerAMI:
     Description: AMI ID from custom image on the console for web server
     Type: AWS::EC2::Image::Id
-    Default: 	ami-0406cef71d445a3a3
+    Default: ami-0406cef71d445a3a3
 
   BastionAMI:
     Description: AMI ID from custom image on the console for bastion host

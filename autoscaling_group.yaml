@@ -84,9 +84,9 @@ Resources:
       LaunchTemplate:
         LaunchTemplateId: !Ref LaunchTemplate
         Version: !GetAtt LaunchTemplate.LatestVersionNumber
-      MinSize: 1
-      MaxSize: 5
-      DesiredCapacity: 2
+      MinSize: 2
+      MaxSize: 4
+      DesiredCapacity: 3
       VPCZoneIdentifier:
         - !Ref PrivateSubnet1Id
         - !Ref PrivateSubnet2Id
@@ -143,7 +143,7 @@ Resources:
     Properties:
       EvaluationPeriods: 2
       Statistic: Average
-      Threshold: 60
+      Threshold: 50
       AlarmDescription: 'Scales instances up based on CPU utilization'
       Period: 60
       AlarmActions:
@@ -161,7 +161,7 @@ Resources:
     Properties:
       EvaluationPeriods: 2
       Statistic: Average
-      Threshold: 20
+      Threshold: 10
       AlarmDescription: 'Scales instances down based on CPU utilization'
       Period: 60
       AlarmActions:
@@ -174,41 +174,41 @@ Resources:
       ComparisonOperator: LessThanOrEqualToThreshold
       MetricName: CPUUtilization
 
-  HighMemoryAlarm:
+  HighTrafficAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
       EvaluationPeriods: 2
       Statistic: Average
-      Threshold: 50
-      AlarmDescription: 'Scales instances up based on memory utilization'
+      Threshold: 500000
+      AlarmDescription: 'Scales instances up based on network traffic'
       Period: 60
       AlarmActions:
       - !Ref ScaleOutPolicy
-      Namespace: System/Linux
+      Namespace: AWS/EC2
       Dimensions:
       - Name: AutoScalingGroupName
         Value:
           !Ref AutoScalingGroup
       ComparisonOperator: GreaterThanOrEqualToThreshold
-      MetricName: MemoryUtilization
+      MetricName: NetworkIn
 
-  LowMemoryAlarm:
+  LowTrafficAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
       EvaluationPeriods: 2
       Statistic: Average
-      Threshold: 20
-      AlarmDescription: 'Scales instances down based on memory utilization'
+      Threshold: 50000
+      AlarmDescription: 'Scales instances down based on network traffic'
       Period: 60
       AlarmActions:
       - !Ref ScaleInPolicy
-      Namespace: System/Linux
+      Namespace: AWS/EC2
       Dimensions:
       - Name: AutoScalingGroupName
         Value:
           !Ref AutoScalingGroup
       ComparisonOperator: LessThanOrEqualToThreshold
-      MetricName: MemoryUtilization
+      MetricName: NetworkIn
 
   StatusCheckFailedAlarm:
     Type: AWS::CloudWatch::Alarm
